@@ -5,7 +5,7 @@ Each lab is organized to demonstrate core **client–server architectures and co
 
 ---
 
-```
+
 ## Repository Structure
 
 ```
@@ -25,10 +25,6 @@ Distributed-Parallel-Computing-Lab/
 └── README.md
 
 ```
-```
-
-
-
 ---
 
 ## Lab 1: RPC and Socket Programming
