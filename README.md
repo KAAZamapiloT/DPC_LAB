@@ -5,22 +5,27 @@ Each lab is organized to demonstrate core **client–server architectures and co
 
 ---
 
+```
 ## Repository Structure
----
+
+```
+
 Distributed-Parallel-Computing-Lab/
 │
 ├── Lab1/
-│ 
-│ 
-│ 
+│   ├── RPC/
+│   └── Socket/
 │
 ├── Lab2/
-│ 
-│ 
-│ 
-│ 
+│   ├── MCSS_Server.py
+│   ├── MCSS_Client.py
+│   ├── MCMS_server.py
+│   └── MCMS_client.py
 │
 └── README.md
+
+```
+```
 
 
 
