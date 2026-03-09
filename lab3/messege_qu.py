@@ -1,6 +1,7 @@
 import socket
 import sys
 import threading
+import time
 
 
 class Node:
@@ -10,42 +11,58 @@ class Node:
         self.peer_ip = peer_ip
         self.peer_port = peer_port
 
-    # ---------------- SERVER ----------------
+        self.peer_socket = None
+        self.peer_lock = threading.Lock()
+
+
     def start_server(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_socket.bind((self.my_ip, self.my_port))
-        server_socket.listen(1)
+        server_socket.listen(5)
 
         print(f"[SERVER] Listening on {self.my_ip}:{self.my_port}")
 
-        conn, addr = server_socket.accept()
-        print(f"[SERVER] Connected by {addr}")
-
         while True:
-            try:
-                data = conn.recv(1024)
-                if not data:
+            conn, addr = server_socket.accept()
+            threading.Thread(
+                target=self.handle_connection, args=(conn, addr), daemon=True
+            ).start()
+
+    def handle_connection(self, conn, addr):
+        print(f"[SERVER] Connection from {addr}")
+
+        with conn:
+            while True:
+                try:
+                    data = conn.recv(1024)
+                    if not data:
+                        break
+
+                    msg = data.decode().strip()
+
+                   
+                    if msg.startswith("PEER:"):
+                        print(f"\n[FROM PEER] {msg[5:]}")
+                    else:
+                      
+                        with self.peer_lock:
+                            if self.peer_socket:
+                                self.peer_socket.sendall(f"PEER:{msg}\n".encode())
+
+                except:
                     break
-                print(f"\n[FROM PEER] {data.decode().strip()}")
-            except:
-                break
 
-        conn.close()
-        server_socket.close()
 
-    # ---------------- CLIENT ----------------
-    def start_client(self):
+    def start_client_to_own_server(self):
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         while True:
             try:
-                client_socket.connect((self.peer_ip, self.peer_port))
+                client_socket.connect((self.my_ip, self.my_port))
                 break
             except:
-                continue
-
-        print(f"[CLIENT] Connected to peer {self.peer_ip}:{self.peer_port}")
+                time.sleep(0.5)
 
         while True:
             msg = input()
@@ -55,19 +72,36 @@ class Node:
 
         client_socket.close()
 
-    # ---------------- RUN ----------------
+   
+    def connect_to_peer_server(self):
+        while True:
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.connect((self.peer_ip, self.peer_port))
+
+                with self.peer_lock:
+                    self.peer_socket = sock
+
+                print(
+                    f"[FORWARDER] Connected to peer server {self.peer_ip}:{self.peer_port}"
+                )
+                return
+
+            except:
+                time.sleep(0.5)
+
+
     def run(self):
-        server_thread = threading.Thread(target=self.start_server, daemon=True)
-        client_thread = threading.Thread(target=self.start_client, daemon=True)
+        threading.Thread(target=self.start_server, daemon=True).start()
+        threading.Thread(target=self.connect_to_peer_server, daemon=True).start()
+        threading.Thread(target=self.start_client_to_own_server, daemon=True).start()
 
-        server_thread.start()
-        client_thread.start()
-
-        server_thread.join()
-        client_thread.join()
+    
+        while True:
+            time.sleep(1)
 
 
-# ---------------- ENTRY POINT ----------------
+
 if __name__ == "__main__":
     if len(sys.argv) != 5:
         print("Usage: python node.py <my_ip> <my_port> <peer_ip> <peer_port>")
@@ -78,5 +112,4 @@ if __name__ == "__main__":
     peer_ip = sys.argv[3]
     peer_port = int(sys.argv[4])
 
-    node = Node(my_ip, my_port, peer_ip, peer_port)
-    node.run()
+    Node(my_ip, my_port, peer_ip, peer_port).run()

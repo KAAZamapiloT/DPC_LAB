@@ -2,7 +2,6 @@ import socket
 
 client_socket = socket.socket()
 client_socket.connect(("localhost", 12345))
-
 # Receive name request
 msg = client_socket.recv(1024).decode()
 print(msg)
